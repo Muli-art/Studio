@@ -1,0 +1,1218 @@
+cat > /home/claude/studio_db.html << 'EOF'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Studio DB — Members & Permissions</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --green:#1D6F42;--green-d:#155232;--green-bg:#E8F5E9;
+  --border:#C6D9C0;--border-d:#9DBF93;
+  --text:#1A1A1A;--muted:#555;--light:#888;
+  --bg:#F8FAF7;--alt:#F2F9F0;--hover:#DFF0D8;
+  --red:#C0392B;--red-bg:#FDECEA;
+  --amber:#D68910;--amber-bg:#FEF9E7;
+  --blue:#1A5276;--blue-bg:#EBF5FB;
+  --purple:#6A1B9A;--purple-bg:#EDE7F6;
+  --r:4px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:'IBM Plex Sans',sans-serif;color:var(--text);font-size:13px;overflow:hidden}
+body{display:flex;flex-direction:column;background:var(--bg)}
+
+/* ══ LOCK SCREEN ══ */
+.lock{position:fixed;inset:0;background:linear-gradient(145deg,#0d3320 0%,#155232 50%,#1D6F42 100%);z-index:900;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px}
+.lock-logo{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;color:#fff;display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.lock-sq{width:32px;height:32px;background:#fff;border-radius:4px;display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:5px}
+.lock-sq span{background:#155232;border-radius:1px}
+.lock-sq span:last-child{background:#90CAF9}
+.lock-sub{font-size:10px;color:rgba(255,255,255,.45);margin-bottom:40px;letter-spacing:.15em;text-transform:uppercase;font-family:'IBM Plex Mono',monospace}
+.lock-label{font-size:11px;color:rgba(255,255,255,.7);margin-bottom:16px;font-weight:500;letter-spacing:.06em}
+.name-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-width:480px;width:100%;margin-bottom:12px}
+.nb{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;padding:14px 8px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:'IBM Plex Mono',monospace;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative}
+.nb:hover{background:rgba(255,255,255,.2);transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.3)}
+.nb .av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+.nb .role-tag{font-size:9px;opacity:.6;font-weight:400;font-family:'IBM Plex Sans',sans-serif;letter-spacing:.04em}
+.nb.sus{opacity:.35;cursor:not-allowed;pointer-events:none}
+.nb .online-ring{position:absolute;top:10px;right:10px;width:9px;height:9px;border-radius:50%;border:2px solid rgba(255,255,255,.3)}
+.nb .online-ring.on{background:#4CAF50;border-color:rgba(255,255,255,.5)}
+.nb .online-ring.off{background:transparent}
+.lock-err{color:#EF9A9A;font-size:11px;min-height:16px;font-family:'IBM Plex Mono',monospace}
+.lock-foot{font-size:10px;color:rgba(255,255,255,.25);margin-top:24px;font-family:'IBM Plex Mono',monospace}
+
+/* ══ SUSPEND WALL ══ */
+.sus-wall{position:fixed;inset:0;background:linear-gradient(145deg,#7B241C,#C0392B);z-index:950;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#fff;padding:20px}
+.sus-wall.show{display:flex}
+.sw-tag{font-size:10px;font-weight:700;letter-spacing:.2em;opacity:.6;margin-bottom:12px;text-transform:uppercase}
+.sw-name{font-family:'IBM Plex Mono',monospace;font-size:40px;font-weight:700;margin-bottom:4px}
+.sw-msg{font-size:13px;opacity:.7;margin-bottom:40px;max-width:360px;line-height:1.6}
+.sw-units{display:flex;gap:32px;justify-content:center;margin-bottom:8px}
+.sw-unit .v{font-family:'IBM Plex Mono',monospace;font-size:52px;font-weight:700;line-height:1;min-width:60px}
+.sw-unit .l{font-size:9px;letter-spacing:.15em;text-transform:uppercase;opacity:.5;margin-top:4px}
+.sw-reason{font-size:12px;opacity:.6;margin-top:16px;font-style:italic;max-width:300px}
+.sw-back{margin-top:36px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;padding:10px 28px;border-radius:var(--r);font-size:12px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif}
+.sw-back:hover{background:rgba(255,255,255,.22)}
+
+/* ══ TOP BAR ══ */
+.topbar{background:var(--green-d);height:46px;display:flex;align-items:center;padding:0 18px;gap:12px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.tb-logo{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#fff;display:flex;align-items:center;gap:8px}
+.tb-sq{width:26px;height:26px;background:#fff;border-radius:3px;display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:4px}
+.tb-sq span{background:var(--green-d);border-radius:1px}
+.tb-sq span:last-child{background:#90CAF9}
+.tb-title{font-size:10px;color:rgba(255,255,255,.6);flex:1;padding-left:12px;border-left:1px solid rgba(255,255,255,.2);font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:6px}
+.live-dot{width:6px;height:6px;border-radius:50%;background:#4CAF50;flex-shrink:0;animation:pulse 1.4s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.tb-user{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);padding:5px 12px;border-radius:var(--r);font-size:11px;color:#fff;font-weight:500;font-family:'IBM Plex Mono',monospace}
+.tb-av{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0}
+.tb-nav{display:flex;gap:4px}
+.tnav{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);color:#fff;padding:5px 14px;border-radius:var(--r);font-size:11px;font-weight:500;cursor:pointer;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;transition:all .15s;display:inline-flex;align-items:center;gap:5px}
+.tnav:hover{background:rgba(255,255,255,.22)}
+.tnav.active{background:#fff;color:var(--green-d)}
+.tnav.logout{border-color:rgba(255,100,100,.4)}
+.tnav.logout:hover{background:rgba(255,100,100,.15)}
+
+/* ══ MAIN ══ */
+.main{display:flex;flex:1;overflow:hidden}
+
+/* ══ LEFT PANEL ══ */
+.left{width:268px;background:#fff;border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.lp-head{padding:10px 14px;border-bottom:1px solid var(--border);background:var(--alt);display:flex;justify-content:space-between;align-items:center}
+.lp-head h3{font-size:10px;font-weight:700;color:var(--green-d);text-transform:uppercase;letter-spacing:.08em}
+.add-btn{background:var(--green);color:#fff;border:none;padding:4px 10px;border-radius:var(--r);font-size:11px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;transition:all .15s}
+.add-btn:hover{background:var(--green-d)}
+.member-list{flex:1;overflow-y:auto}
+.member-list::-webkit-scrollbar{width:5px}
+.member-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.mi{padding:11px 14px;border-bottom:1px solid rgba(0,0,0,.04);cursor:pointer;display:flex;align-items:center;gap:10px;transition:all .12s;position:relative}
+.mi:hover{background:var(--hover)}
+.mi.active{background:var(--green-bg);border-left:3px solid var(--green)}
+.mi.sus-item{opacity:.6}
+.mi-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;flex-shrink:0;font-family:'IBM Plex Mono',monospace;position:relative}
+.mi-online{position:absolute;bottom:0;right:0;width:10px;height:10px;border-radius:50%;border:2px solid #fff}
+.mi-online.on{background:#4CAF50}
+.mi-online.off{background:#ccc}
+.mi-info{flex:1;min-width:0}
+.mi-name{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mi-role{font-size:10px;color:var(--muted);margin-top:1px}
+.mi-last{font-size:9px;color:var(--light);margin-top:2px;font-family:'IBM Plex Mono',monospace}
+.mi-badges{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.sp{padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700;white-space:nowrap}
+.sp-active{background:#E8F5E9;color:#1D6F42}
+.sp-sus{background:#FDECEA;color:#C0392B}
+.sp-online{background:#E3F2FD;color:#1565C0}
+
+/* stock alerts sidebar */
+.alert-box{margin:10px 14px;padding:10px;background:var(--red-bg);border:1px solid #F1948A;border-radius:var(--r);display:none}
+.alert-box.show{display:block}
+.alert-box h4{font-size:10px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.alert-item{font-size:11px;color:var(--red);padding:3px 0;display:flex;align-items:center;gap:5px;border-bottom:1px solid rgba(192,57,43,.15)}
+.alert-item:last-child{border:none}
+
+/* ══ RIGHT PANEL ══ */
+.right{flex:1;overflow-y:auto;padding:22px;background:var(--bg)}
+.right::-webkit-scrollbar{width:8px}
+.right::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* no selection */
+.no-sel{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--light);gap:8px}
+.no-sel-icon{font-size:48px;opacity:.25}
+
+/* ══ MEMBER DETAIL ══ */
+.det-header{display:flex;gap:18px;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap}
+.det-av{width:70px;height:70px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:24px;color:#fff;font-family:'IBM Plex Mono',monospace;flex-shrink:0;box-shadow:0 4px 14px rgba(0,0,0,.15)}
+.det-meta{flex:1}
+.det-name{font-size:20px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--green-d);margin-bottom:4px}
+.det-role-b{display:inline-block;padding:3px 11px;border-radius:3px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
+.det-meta-row{font-size:11px;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:6px}
+.det-online-indicator{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+.det-actions{display:flex;gap:7px;flex-wrap:wrap;margin-left:auto;align-self:flex-start}
+
+/* CARDS */
+.cards-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:14px}
+.card.full{grid-column:1/-1}
+.card-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:6px;justify-content:space-between}
+.card-title-left{display:flex;align-items:center;gap:6px}
+.card-title-left::before{content:'';display:inline-block;width:3px;height:11px;background:var(--green);border-radius:2px}
+
+/* ══ STATS ROW ══ */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.stat-box{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:12px;text-align:center}
+.stat-val{font-size:26px;font-weight:700;font-family:'IBM Plex Mono',monospace;line-height:1}
+.stat-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:4px}
+
+/* ══ PERMISSIONS ══ */
+.perm-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.perm-item{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:var(--r);border:1px solid;font-size:12px;font-weight:500;transition:all .15s}
+.perm-on{background:var(--green-bg);border-color:#A5D6A7;color:var(--green)}
+.perm-off{background:#FAFAFA;border-color:#E0E0E0;color:#999}
+.perm-icon{font-size:14px;flex-shrink:0}
+.perm-lbl{flex:1;font-size:11px}
+.perm-sub{font-size:9px;color:var(--light);display:block;margin-top:1px}
+.tog{width:32px;height:18px;border-radius:9px;border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0}
+.tog.on{background:var(--green)}
+.tog.off{background:#ccc}
+.tog::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.tog.on::after{transform:translateX(14px)}
+.tog:disabled{opacity:.4;cursor:not-allowed}
+
+/* ══ SECTIONS ══ */
+.section-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);margin-bottom:14px;overflow:hidden}
+.section-head{padding:10px 14px;background:var(--alt);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.section-title{font-size:11px;font-weight:700;color:var(--green-d);display:flex;align-items:center;gap:6px}
+.section-body{padding:12px 14px}
+.section-status{display:flex;align-items:center;gap:6px}
+.section-tog{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+.section-locked-msg{font-size:11px;color:var(--red);padding:10px;background:var(--red-bg);border-radius:var(--r);display:flex;align-items:center;gap:6px}
+
+/* ══ INVENTORY TABLE (inside sections) ══ */
+.inv-wrap{overflow-x:auto;margin-top:8px}
+.inv-tbl{min-width:100%;border-collapse:collapse;table-layout:fixed}
+.inv-tbl th{padding:6px 8px;background:var(--alt);font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid var(--border-d);text-align:left;font-family:'IBM Plex Mono',monospace;white-space:nowrap}
+.inv-tbl td{padding:6px 8px;font-size:12px;font-family:'IBM Plex Mono',monospace;border-bottom:1px solid var(--border);vertical-align:middle;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.inv-tbl tr:last-child td{border-bottom:none}
+.inv-tbl tr:hover td{background:var(--hover)}
+.inv-tbl tr:nth-child(even) td{background:var(--alt)}
+.inv-tbl tr:nth-child(even):hover td{background:var(--hover)}
+.badge{display:inline-flex;align-items:center;padding:1px 7px;border-radius:2px;font-size:10px;font-weight:600;font-family:'IBM Plex Sans',sans-serif;white-space:nowrap}
+.b-g{background:#E8F5E9;color:#1D6F42;border:1px solid #A5D6A7}
+.b-n{background:#E3F2FD;color:#1565C0;border:1px solid #90CAF9}
+.b-u{background:#FFF8E1;color:#E65100;border:1px solid #FFCC80}
+.b-d{background:#FDECEA;color:#B71C1C;border:1px solid #EF9A9A}
+.b-e{background:#FDECEA;color:#B71C1C;border:1px solid #EF9A9A}
+.b-x{background:#F5F5F5;color:#757575;border:1px solid #E0E0E0}
+.lvl{width:44px;height:5px;background:#ddd;border-radius:1px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:5px}
+.lvl-f{height:100%;border-radius:1px}
+
+/* ══ ACTIVITY LOG ══ */
+.log-list{max-height:220px;overflow-y:auto}
+.log-list::-webkit-scrollbar{width:4px}
+.log-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.log-e{padding:8px 0;border-bottom:1px solid var(--border);display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:start}
+.log-e:last-child{border-bottom:none}
+.log-ic{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+.l-login{background:#E3F2FD;color:#1565C0}
+.l-out{background:#FDECEA;color:#C0392B}
+.l-ret{background:#E8F5E9;color:#1D6F42}
+.l-rst{background:#EDE7F6;color:#6A1B9A}
+.l-add{background:#E8F5E9;color:#1D6F42}
+.l-edit{background:#FFF8E1;color:#E65100}
+.l-del{background:#FDECEA;color:#C0392B}
+.l-sus{background:#FDECEA;color:#C0392B}
+.l-perm{background:#EDE7F6;color:#6A1B9A}
+.log-body .lt{font-size:12px;font-weight:600;margin-bottom:1px}
+.log-body .lm{font-size:11px;color:var(--muted)}
+.log-time{font-size:10px;color:var(--light);font-family:'IBM Plex Mono',monospace;white-space:nowrap;padding-top:2px}
+
+/* ══ SUSPEND CARD ══ */
+.sus-card{background:var(--red-bg);border:1px solid #F1948A;border-radius:var(--r);padding:14px;margin-bottom:14px}
+.sus-card-title{font-size:11px;font-weight:700;color:var(--red);margin-bottom:10px;display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:.05em}
+.dur-row{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+.dur-btn{padding:5px 12px;border-radius:var(--r);font-size:11px;font-weight:600;cursor:pointer;border:1px solid #F1948A;background:#fff;color:var(--red);transition:all .15s;font-family:'IBM Plex Sans',sans-serif}
+.dur-btn.sel,.dur-btn:hover{background:var(--red);color:#fff;border-color:var(--red)}
+.cd{font-family:'IBM Plex Mono',monospace;font-size:30px;font-weight:700;color:var(--red);text-align:center;letter-spacing:.04em;margin:8px 0}
+.cd-label{font-size:9px;color:var(--muted);text-align:center;letter-spacing:.1em;text-transform:uppercase}
+.active-sus-info{background:var(--red-bg);border:1px solid #F1948A;border-radius:var(--r);padding:10px 12px;margin-bottom:12px;font-size:12px;color:var(--red);line-height:1.6}
+
+/* ══ LIVE ACTIVITY FEED ══ */
+.feed{position:fixed;right:0;top:46px;width:280px;background:#fff;border-left:1px solid var(--border);height:calc(100% - 68px);display:flex;flex-direction:column;z-index:50;transform:translateX(100%);transition:transform .3s ease;box-shadow:-4px 0 16px rgba(0,0,0,.08)}
+.feed.open{transform:translateX(0)}
+.feed-head{padding:10px 14px;border-bottom:1px solid var(--border);background:var(--alt);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.feed-head h3{font-size:11px;font-weight:700;color:var(--green-d);text-transform:uppercase;letter-spacing:.07em}
+.feed-body{flex:1;overflow-y:auto;padding:8px 0}
+.feed-body::-webkit-scrollbar{width:4px}
+.feed-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.feed-e{padding:10px 14px;border-bottom:1px solid rgba(0,0,0,.04);display:grid;grid-template-columns:28px 1fr;gap:8px;align-items:start;animation:slideIn .3s ease both}
+@keyframes slideIn{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
+.feed-ic{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.feed-body-t{font-size:12px;font-weight:600;margin-bottom:2px;color:var(--text)}
+.feed-body-m{font-size:11px;color:var(--muted)}
+.feed-body-time{font-size:10px;color:var(--light);font-family:'IBM Plex Mono',monospace;margin-top:2px}
+.feed-empty{padding:20px;text-align:center;color:var(--light);font-size:12px}
+
+/* ══ MODAL ══ */
+.mbg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:600;display:none;align-items:center;justify-content:center}
+.mbg.open{display:flex}
+.mod{background:#fff;width:500px;max-width:96vw;border-radius:var(--r);box-shadow:0 10px 40px rgba(0,0,0,.22);overflow:hidden;max-height:92vh;display:flex;flex-direction:column}
+.mod-head{padding:14px 18px;color:#fff;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.mod-head h3{font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px}
+.mc{background:none;border:none;color:rgba(255,255,255,.75);font-size:18px;cursor:pointer;padding:0 3px;line-height:1}
+.mc:hover{color:#fff}
+.mod-body{padding:18px;overflow-y:auto;flex:1}
+.mod-foot{padding:12px 18px;background:#f8f8f8;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0}
+.field{margin-bottom:13px}
+.field label{display:block;font-size:10px;font-weight:700;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
+.field input,.field select,.field textarea{width:100%;border:1px solid var(--border-d);border-radius:var(--r);padding:8px 10px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text);outline:none;background:#FAFFF9;transition:border-color .15s}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(29,111,66,.1)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.btn{padding:8px 18px;border-radius:var(--r);font-size:12px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;transition:all .15s;border:none;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.btn-p{background:var(--green);color:#fff}.btn-p:hover{background:var(--green-d)}
+.btn-g{background:#fff;color:var(--muted);border:1px solid var(--border-d)}.btn-g:hover{background:var(--alt)}
+.btn-r{background:var(--red);color:#fff}.btn-r:hover{background:#a93226}
+.btn-a{background:var(--amber);color:#fff}.btn-a:hover{background:#b7770d}
+.btn-sm{padding:5px 11px;font-size:11px}
+.btn-xs{padding:3px 9px;font-size:10px}
+
+/* PERMS CHECKLIST */
+.perm-check-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:6px}
+.perm-check{display:flex;align-items:flex-start;gap:7px;padding:7px 9px;border-radius:var(--r);border:1px solid var(--border);cursor:pointer;transition:all .12s;background:#fff}
+.perm-check:hover{border-color:var(--green);background:var(--green-bg)}
+.perm-check input{margin-top:1px;accent-color:var(--green);flex-shrink:0}
+.perm-check-lbl{font-size:11px;font-weight:600;color:var(--text)}
+.perm-check-sub{font-size:10px;color:var(--muted);display:block;margin-top:1px}
+
+/* SECTION MANAGER */
+.sec-list{display:flex;flex-direction:column;gap:7px}
+.sec-item{display:flex;align-items:center;gap:8px;padding:9px 11px;border:1px solid var(--border);border-radius:var(--r);background:#fff}
+.sec-item-icon{font-size:16px}
+.sec-item-info{flex:1}
+.sec-item-name{font-size:12px;font-weight:600}
+.sec-item-sub{font-size:10px;color:var(--muted);margin-top:1px}
+.sec-item-rm{background:none;border:none;color:var(--light);cursor:pointer;font-size:14px;padding:2px 5px;border-radius:2px;transition:all .15s}
+.sec-item-rm:hover{background:var(--red-bg);color:var(--red)}
+
+/* ══ STATUS BAR ══ */
+.statusbar{background:#E8EBE7;border-top:1px solid var(--border-d);height:22px;display:flex;align-items:center;padding:0 12px;gap:20px;font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;flex-shrink:0}
+.statusbar .ml-auto{margin-left:auto;color:var(--green);font-weight:700}
+
+/* ══ TOAST ══ */
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--green);color:#fff;padding:9px 22px;border-radius:var(--r);font-size:12px;font-weight:500;box-shadow:0 4px 16px rgba(0,0,0,.2);opacity:0;transition:all .3s;pointer-events:none;z-index:900;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.err{background:var(--red)}
+
+/* ══ RESTOCK ALERT BANNER ══ */
+.rst-banner{background:var(--red-bg);border:1px solid #F1948A;border-radius:var(--r);padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--red)}
+.rst-banner-icon{font-size:18px;flex-shrink:0}
+.rst-banner b{font-weight:700}
+
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:#f0f0f0}
+::-webkit-scrollbar-thumb{background:#c0c0c0;border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- ══ LOCK SCREEN ══ -->
+<div class="lock" id="lock">
+  <div class="lock-logo"><div class="lock-sq"><span></span><span></span><span></span><span></span></div>STUDIO DB</div>
+  <div class="lock-sub">Members · Permissions · Access Control</div>
+  <div class="lock-label">SELECT YOUR NAME TO ENTER</div>
+  <div class="name-grid" id="lock-grid"></div>
+  <div class="lock-err" id="lock-err"></div>
+  <div class="lock-foot">Only registered members may enter — unrecognised names will be rejected</div>
+</div>
+
+<!-- ══ SUSPEND WALL ══ -->
+<div class="sus-wall" id="sus-wall">
+  <div class="sw-tag">⊘ Account Suspended</div>
+  <div class="sw-name" id="sw-name">—</div>
+  <div class="sw-msg">You cannot access the Studio system at this time. Please contact your administrator.</div>
+  <div class="sw-units">
+    <div class="sw-unit"><div class="v" id="sw-d">0</div><div class="l">Days</div></div>
+    <div class="sw-unit"><div class="v" id="sw-h">00</div><div class="l">Hours</div></div>
+    <div class="sw-unit"><div class="v" id="sw-m">00</div><div class="l">Min</div></div>
+    <div class="sw-unit"><div class="v" id="sw-s">00</div><div class="l">Sec</div></div>
+  </div>
+  <div class="sw-reason" id="sw-reason"></div>
+  <button class="sw-back" onclick="sessionStorage.removeItem('db_session');location.reload()">← Back to Login</button>
+</div>
+
+<!-- ══ APP ══ -->
+<div class="topbar">
+  <div class="tb-logo"><div class="tb-sq"><span></span><span></span><span></span><span style="background:#90CAF9"></span></div>STUDIO DB</div>
+  <div class="tb-title"><span class="live-dot"></span>Members & Permissions — <span id="tb-name">—</span></div>
+  <div class="tb-user" id="tb-user" style="display:none">
+    <div class="tb-av" id="tb-av"></div><span id="tb-uname">—</span>
+  </div>
+  <div class="tb-nav">
+    <button class="tnav" onclick="toggleFeed()">📡 Live Feed</button>
+    <span class="tnav active">⬢ Database</span>
+    <button class="tnav logout" onclick="doLogout()">↩ Logout</button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- ══ LEFT PANEL ══ -->
+  <div class="left">
+    <div class="lp-head">
+      <h3>Members (<span id="mc">0</span>)</h3>
+      <button class="add-btn" id="add-mem-btn" onclick="openAddMember()" style="display:none">＋ Add</button>
+    </div>
+    <!-- Stock Alerts -->
+    <div class="alert-box" id="stock-alert-box">
+      <h4>⚠ Low / Empty Stock</h4>
+      <div id="stock-alert-list"></div>
+    </div>
+    <div class="member-list" id="member-list"></div>
+  </div>
+
+  <!-- ══ RIGHT PANEL ══ -->
+  <div class="right" id="right">
+    <div class="no-sel"><div class="no-sel-icon">👤</div><div>Select a member from the list</div></div>
+  </div>
+</div>
+
+<!-- ══ LIVE FEED PANEL ══ -->
+<div class="feed" id="feed">
+  <div class="feed-head">
+    <h3><span class="live-dot"></span>Live Activity</h3>
+    <button class="btn btn-xs btn-g" onclick="toggleFeed()">✕ Close</button>
+  </div>
+  <div class="feed-body" id="feed-body"></div>
+</div>
+
+<div class="statusbar">
+  <span id="sb-status">Ready</span>
+  <span id="sb-members"></span>
+  <span class="ml-auto" id="sb-clock"></span>
+</div>
+
+<!-- ══ MODALS ══ -->
+
+<!-- ADD / EDIT MEMBER -->
+<div class="mbg" id="m-member">
+  <div class="mod">
+    <div class="mod-head" style="background:var(--green)"><h3 id="m-member-title">＋ Add Member</h3><button class="mc" onclick="closeM('m-member')">✕</button></div>
+    <div class="mod-body">
+      <div class="field-row">
+        <div class="field"><label>Name</label><input id="mm-name" placeholder="Display name"></div>
+        <div class="field"><label>Role</label>
+          <select id="mm-role">
+            <option value="Member">Member</option>
+            <option value="Manager">Manager</option>
+            <option value="Admin">Admin</option>
+            <option value="Viewer">Viewer</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Avatar Initials</label><input id="mm-av" placeholder="e.g. WJ" maxlength="3"></div>
+        <div class="field"><label>Colour</label><input id="mm-color" type="color" value="#1D6F42"></div>
+      </div>
+      <div class="field">
+        <label>Permissions</label>
+        <div class="perm-check-grid" id="mm-perms"></div>
+      </div>
+      <div class="field">
+        <label>Custom Sections</label>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Choose which sections this member can see and use.</div>
+        <div class="sec-list" id="mm-secs"></div>
+      </div>
+    </div>
+    <div class="mod-foot">
+      <button class="btn btn-g" onclick="closeM('m-member')">Cancel</button>
+      <button class="btn btn-p" id="mm-save-btn" onclick="saveMember()">＋ Add Member</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD SECTION -->
+<div class="mbg" id="m-add-section">
+  <div class="mod" style="width:400px">
+    <div class="mod-head" style="background:var(--blue)"><h3>＋ Add Section</h3><button class="mc" onclick="closeM('m-add-section')">✕</button></div>
+    <div class="mod-body">
+      <div class="field"><label>Section Name</label><input id="as-name" placeholder="e.g. Equipment Loans, Archive Room…"></div>
+      <div class="field"><label>Icon (emoji)</label><input id="as-icon" placeholder="e.g. 📦" maxlength="4"></div>
+      <div class="field"><label>Description</label><input id="as-desc" placeholder="What does this section cover?"></div>
+    </div>
+    <div class="mod-foot">
+      <button class="btn btn-g" onclick="closeM('m-add-section')">Cancel</button>
+      <button class="btn btn-p" onclick="saveAddSection()">＋ Add Section</button>
+    </div>
+  </div>
+</div>
+
+<!-- SUSPEND -->
+<div class="mbg" id="m-suspend">
+  <div class="mod" style="width:400px">
+    <div class="mod-head" style="background:var(--red)"><h3>⊘ Suspend Member</h3><button class="mc" onclick="closeM('m-suspend')">✕</button></div>
+    <div class="mod-body">
+      <div class="field">
+        <label>Duration</label>
+        <div class="dur-row" id="dur-row"></div>
+        <input type="hidden" id="sus-days" value="7">
+      </div>
+      <div class="field"><label>Custom Days</label><input id="sus-custom" type="number" min="1" max="365" placeholder="Or enter custom days…" oninput="setSusDays(this.value)"></div>
+      <div class="field"><label>Reason (shown on suspend screen)</label><input id="sus-reason-input" placeholder="e.g. Policy violation, temporary leave…"></div>
+    </div>
+    <div class="mod-foot">
+      <button class="btn btn-g" onclick="closeM('m-suspend')">Cancel</button>
+      <button class="btn btn-r" onclick="doSuspend()">⊘ Suspend Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- RESTOCK -->
+<div class="mbg" id="m-restock">
+  <div class="mod">
+    <div class="mod-head" style="background:var(--blue)"><h3>⬆ Restock Item</h3><button class="mc" onclick="closeM('m-restock')">✕</button></div>
+    <div class="mod-body">
+      <div class="field"><label>Item</label><select id="rst-item"></select></div>
+      <div class="field-row3">
+        <div class="field"><label>Qty to Add</label><input id="rst-qty" type="number" min="1" value="1"></div>
+        <div class="field"><label>Condition</label><select id="rst-cond"><option>Good</option><option>New</option><option>Repaired</option><option>Used</option></select></div>
+        <div class="field"><label>Source</label><input id="rst-src" placeholder="Supplier / source"></div>
+      </div>
+      <div class="field"><label>Notes</label><input id="rst-notes" placeholder="Any notes…"></div>
+    </div>
+    <div class="mod-foot">
+      <button class="btn btn-g" onclick="closeM('m-restock')">Cancel</button>
+      <button class="btn btn-p" onclick="doRestock()">⬆ Restock</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+// STORAGE
+// ══════════════════════════════════════════════════════════════════
+const S = {
+  get: k => { try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } },
+  set: (k,v) => { localStorage.setItem(k, JSON.stringify(v)); S.bc(k); },
+  bc: k => { try { localStorage.setItem('_bc', JSON.stringify({k, t: Date.now()})); } catch(e){} },
+  ts: () => new Date().toISOString(),
+  fmt: iso => { if(!iso) return '—'; const d = new Date(iso); return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) + ' ' + d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}); }
+};
+
+// ══════════════════════════════════════════════════════════════════
+// DEFAULTS
+// ══════════════════════════════════════════════════════════════════
+const ALL_PERMS = [
+  { key:'view',     label:'View Inventory',    sub:'See all items and stock levels',    icon:'👁' },
+  { key:'checkout', label:'Check Out Items',   sub:'Borrow equipment from inventory',   icon:'↗' },
+  { key:'return',   label:'Return Items',      sub:'Log equipment returns',             icon:'↙' },
+  { key:'restock',  label:'Restock Items',     sub:'Add stock to existing items',       icon:'⬆' },
+  { key:'add',      label:'Add New Items',     sub:'Create new inventory entries',      icon:'＋' },
+  { key:'remove',   label:'Remove Items',      sub:'Delete items from inventory',       icon:'✕' },
+  { key:'suspend',  label:'Suspend Members',   sub:'Restrict access for other members', icon:'⊘' },
+  { key:'manage',   label:'Manage Members',    sub:'Add / edit / remove members',       icon:'👥' },
+  { key:'sections', label:'Manage Sections',   sub:'Add / remove member sections',      icon:'🗂' },
+  { key:'feed',     label:'View Live Feed',    sub:'See real-time activity of others',  icon:'📡' },
+];
+
+const DEFAULT_SECTIONS = [
+  { id:'inv',      name:'Inventory Access',    icon:'📦', desc:'Can view and interact with inventory system' },
+  { id:'checkout', name:'Equipment Loans',     icon:'↗',  desc:'Can check out and return studio tools' },
+  { id:'reports',  name:'Reports & Exports',   icon:'📊', desc:'Can export and view inventory reports' },
+  { id:'archive',  name:'Archive Room',        icon:'🗄',  desc:'Access to archived project materials' },
+];
+
+function initDefaults() {
+  if (!S.get('users')) {
+    S.set('users', [
+      { id:1, name:'Muli',    role:'Manager', av:'M',  color:'#D68910', permissions:['view','checkout','return','restock','add','sections','feed','manage'], sections:['inv','checkout','reports'], suspended:false, suspendUntil:null, suspendReason:'', lastSeen:null },
+      { id:2, name:'Willy',   role:'Member',  av:'W',  color:'#1D6F42', permissions:['view','checkout','return'],                                             sections:['inv','checkout'],          suspended:false, suspendUntil:null, suspendReason:'', lastSeen:null },
+      { id:3, name:'Abdul',   role:'Member',  av:'A',  color:'#1565C0', permissions:['view','checkout','return'],                                             sections:['inv','checkout'],          suspended:false, suspendUntil:null, suspendReason:'', lastSeen:null },
+      { id:4, name:'Ajx',     role:'Member',  av:'AJ', color:'#6A1B9A', permissions:['view','checkout','return'],                                             sections:['inv','checkout'],          suspended:false, suspendUntil:null, suspendReason:'', lastSeen:null },
+      { id:5, name:'Pinchez', role:'Member',  av:'P',  color:'#C0392B', permissions:['view','checkout','return'],                                             sections:['inv','checkout'],          suspended:false, suspendUntil:null, suspendReason:'', lastSeen:null },
+      { id:6, name:'Wanji',   role:'Member',  av:'WJ', color:'#117A65', permissions:['view','checkout','return'],                                             sections:['inv','checkout'],          suspended:false, suspendUntil:null, suspendReason:'', lastSeen:null },
+      { id:7, name:'Linco',   role:'Member',  av:'L',  color:'#4A235A', permissions:['view','checkout','return'],                                             sections:['inv','checkout'],          suspended:false, suspendUntil:null, suspendReason:'', lastSeen:null },
+    ]);
+  }
+  if (!S.get('sections_def')) S.set('sections_def', DEFAULT_SECTIONS);
+  if (!S.get('items')) S.set('items', [
+    {id:1,rowNum:12,cat:"Vent Duct Carton",name:"Big Vent Duct",qty:1,available:1,checkedOut:0,status:"Good",condition:"Good",unit:"pcs"},
+    {id:2,rowNum:13,cat:"Vent Duct Carton",name:"Medium Vent Duct",qty:2,available:2,checkedOut:0,status:"Good",condition:"Good",unit:"pcs"},
+    {id:3,rowNum:14,cat:"Vent Duct Carton",name:"Small Vent Duct",qty:1,available:1,checkedOut:0,status:"Good",condition:"Good",unit:"pcs"},
+    {id:4,rowNum:15,cat:"Vent Duct Carton",name:"Tin Lamps",qty:3,available:3,checkedOut:0,status:"Good",condition:"Good",unit:"pcs"},
+    {id:5,rowNum:16,cat:"Vent Duct Carton",name:"Bulb Lamps",qty:4,available:4,checkedOut:0,status:"Good",condition:"Good",unit:"pcs"},
+    {id:6,rowNum:17,cat:"Vent Duct Carton",name:"Nairobi Space Station Masks",qty:5,available:5,checkedOut:0,status:"Good",condition:"Good",unit:"pcs"},
+    {id:7,rowNum:19,cat:"Reed Box 1",name:"Shoe Sole Prototypes",qty:3,available:3,checkedOut:0,status:"Good",condition:"Good",unit:"Big=1,Small=2"},
+    {id:8,rowNum:20,cat:"Reed Box 1",name:"Left Over Leather",qty:2,available:2,checkedOut:0,status:"Good",condition:"Used",unit:"pcs"},
+    {id:9,rowNum:21,cat:"Reed Box 1",name:"Aksari Sculpture",qty:1,available:1,checkedOut:0,status:"Good",condition:"Good",unit:"pcs"},
+    {id:10,rowNum:22,cat:"Reed Box 1",name:"Animal Head Sculpture",qty:1,available:1,checkedOut:0,status:"Good",condition:"Good",unit:"pcs"},
+    {id:11,rowNum:24,cat:"Materials Carton",name:"Beads Mat",qty:2,available:2,checkedOut:0,status:"Good",condition:"Good",unit:"pcs"},
+    {id:12,rowNum:25,cat:"Materials Carton",name:"Prototype Sandals",qty:2,available:2,checkedOut:0,status:"Good",condition:"Good",unit:"pcs"},
+    {id:13,rowNum:26,cat:"Materials Carton",name:"Wool Brush",qty:1,available:1,checkedOut:0,status:"Good",condition:"Good",unit:"pcs"},
+    {id:14,rowNum:27,cat:"Materials Carton",name:"Flax Fiber",qty:3,available:3,checkedOut:0,status:"Good",condition:"Good",unit:"pcs"},
+  ]);
+  if (!S.get('log')) S.set('log', []);
+  if (!S.get('checkouts')) S.set('checkouts', []);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// SESSION
+// ══════════════════════════════════════════════════════════════════
+let session = null;
+let selectedUid = null;
+let susInt = null, clockInt = null, feedInt = null;
+let suspendTargetId = null;
+
+function addLog(entry) {
+  const log = S.get('log') || [];
+  log.unshift({ ...entry, id: Date.now() + Math.random(), ts: S.ts() });
+  S.set('log', log.slice(0, 600));
+}
+
+function isSus(u) {
+  if (!u.suspended) return false;
+  if (!u.suspendUntil) return true;
+  return new Date(u.suspendUntil) > new Date();
+}
+function susRem(u) {
+  if (!u.suspendUntil) return null;
+  const d = new Date(u.suspendUntil) - new Date();
+  if (d <= 0) return null;
+  return { d: Math.floor(d/86400000), h: Math.floor((d%86400000)/3600000), m: Math.floor((d%3600000)/60000), s: Math.floor((d%60000)/1000) };
+}
+function isOnline(u) {
+  const log = S.get('log') || [];
+  const last = log.find(l => l.uid === u.id && l.type === 'login');
+  return last && (Date.now() - new Date(last.ts)) < 30 * 60 * 1000;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// LOCK SCREEN
+// ══════════════════════════════════════════════════════════════════
+function buildLock() {
+  const users = S.get('users') || [];
+  document.getElementById('lock-grid').innerHTML = users.map(u => {
+    const sus = isSus(u);
+    const online = isOnline(u);
+    return `<button class="nb${sus?' sus':''}" onclick="tryLogin(${u.id})" ${sus?'title="Suspended — cannot enter"':''}>
+      <div class="online-ring${online?' on':' off'}"></div>
+      <div class="av" style="background:${u.color}">${u.av}</div>
+      <span>${u.name}</span>
+      <span class="role-tag">${u.role}</span>
+      ${sus?'<span style="font-size:9px;color:#EF9A9A;letter-spacing:.04em">SUSPENDED</span>':''}
+    </button>`;
+  }).join('');
+}
+
+function tryLogin(uid) {
+  const users = S.get('users') || [];
+  const user = users.find(u => u.id === uid);
+  if (!user) { document.getElementById('lock-err').textContent = 'Name not recognised. Access denied.'; return; }
+  if (isSus(user)) { sessionStorage.setItem('db_session', JSON.stringify(user)); showSusWall(user); return; }
+  sessionStorage.setItem('db_session', JSON.stringify(user));
+  session = { ...user };
+  // update lastSeen
+  const idx = users.findIndex(u => u.id === uid);
+  if (idx >= 0) { users[idx].lastSeen = S.ts(); S.set('users', users); }
+  addLog({ type:'login', uid:user.id, user:user.name, title:`${user.name} logged into DB`, detail:`Role: ${user.role}` });
+  document.getElementById('lock').style.display = 'none';
+  initApp();
+}
+
+function showSusWall(user) {
+  document.getElementById('sw-name').textContent = user.name.toUpperCase();
+  document.getElementById('sw-reason').textContent = user.suspendReason ? `"${user.suspendReason}"` : '';
+  document.getElementById('sus-wall').classList.add('show');
+  function tick() {
+    // Re-read from storage in case admin lifted it
+    const users = S.get('users') || [];
+    const u = users.find(x => x.id === user.id);
+    if (!u || !isSus(u)) { document.getElementById('sus-wall').classList.remove('show'); sessionStorage.removeItem('db_session'); buildLock(); if(susInt) clearInterval(susInt); return; }
+    const rem = susRem(u);
+    if (!rem) { document.getElementById('sw-d').textContent='0'; document.getElementById('sw-h').textContent='00'; document.getElementById('sw-m').textContent='00'; document.getElementById('sw-s').textContent='00'; return; }
+    document.getElementById('sw-d').textContent = rem.d;
+    document.getElementById('sw-h').textContent = String(rem.h).padStart(2,'0');
+    document.getElementById('sw-m').textContent = String(rem.m).padStart(2,'0');
+    document.getElementById('sw-s').textContent = String(rem.s).padStart(2,'0');
+  }
+  tick();
+  if (susInt) clearInterval(susInt);
+  susInt = setInterval(tick, 1000);
+}
+
+function doLogout() { sessionStorage.removeItem('db_session'); location.reload(); }
+
+// ══════════════════════════════════════════════════════════════════
+// INIT APP
+// ══════════════════════════════════════════════════════════════════
+function initApp() {
+  const tbUser = document.getElementById('tb-user');
+  tbUser.style.display = 'flex';
+  document.getElementById('tb-av').textContent = session.av;
+  document.getElementById('tb-av').style.background = session.color;
+  document.getElementById('tb-uname').textContent = session.name;
+  document.getElementById('tb-name').textContent = session.name + ' (' + session.role + ')';
+  document.getElementById('sb-status').textContent = '● ' + session.name + ' — ' + session.role;
+  if (session.permissions.includes('manage')) document.getElementById('add-mem-btn').style.display = 'inline-flex';
+  renderAll();
+  checkStockAlerts();
+  startClock();
+  startFeedPoll();
+  // Cross-tab real-time
+  window.addEventListener('storage', e => {
+    if (e.key === '_bc') { renderAll(); checkStockAlerts(); renderFeed(); }
+  });
+}
+
+function startClock() {
+  clockInt = setInterval(() => {
+    document.getElementById('sb-clock').textContent = new Date().toLocaleTimeString('en-GB');
+  }, 1000);
+}
+
+function startFeedPoll() {
+  renderFeed();
+  feedInt = setInterval(renderFeed, 4000);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// RENDER ALL
+// ══════════════════════════════════════════════════════════════════
+function renderAll() {
+  renderMemberList();
+  if (selectedUid) renderDetail(selectedUid);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// MEMBER LIST
+// ══════════════════════════════════════════════════════════════════
+function renderMemberList() {
+  const users = S.get('users') || [];
+  document.getElementById('mc').textContent = users.length;
+  document.getElementById('sb-members').textContent = `${users.length} members`;
+  document.getElementById('member-list').innerHTML = users.map(u => {
+    const sus = isSus(u);
+    const online = isOnline(u);
+    const log = S.get('log') || [];
+    const lastLogin = log.find(l => l.uid === u.id && l.type === 'login');
+    return `<div class="mi${sus?' sus-item':''}${selectedUid===u.id?' active':''}" onclick="selectMember(${u.id})" data-uid="${u.id}">
+      <div class="mi-av" style="background:${u.color}">
+        ${u.av}
+        <div class="mi-online ${online?'on':'off'}"></div>
+      </div>
+      <div class="mi-info">
+        <div class="mi-name">${u.name}</div>
+        <div class="mi-role">${u.role} · ${u.permissions.length} permissions</div>
+        <div class="mi-last">${lastLogin ? 'Last: ' + S.fmt(lastLogin.ts) : 'Never logged in'}</div>
+      </div>
+      <div class="mi-badges">
+        ${sus ? '<span class="sp sp-sus">Suspended</span>' : online ? '<span class="sp sp-online">● Online</span>' : '<span class="sp sp-active">Active</span>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// SELECT MEMBER → RENDER DETAIL
+// ══════════════════════════════════════════════════════════════════
+function selectMember(uid) {
+  selectedUid = uid;
+  renderMemberList();
+  renderDetail(uid);
+}
+
+function renderDetail(uid) {
+  const users = S.get('users') || [];
+  const user = users.find(u => u.id === uid);
+  if (!user) return;
+
+  const sus = isSus(user);
+  const online = isOnline(user);
+  const rem = sus ? susRem(user) : null;
+  const canManage = session.permissions.includes('manage');
+  const canSuspend = session.permissions.includes('suspend');
+  const isMuli = session.name === 'Muli';
+  const isMe = session.id === uid;
+  const sectionsDef = S.get('sections_def') || DEFAULT_SECTIONS;
+  const items = S.get('items') || [];
+  const checkouts = S.get('checkouts') || [];
+  const log = S.get('log') || [];
+  const userLog = log.filter(l => l.uid === uid);
+  const userCheckouts = checkouts.filter(c => c.userId === uid);
+  const activeOut = userCheckouts.filter(c => !c.returned).length;
+  const totalOut = userCheckouts.length;
+  const logins = userLog.filter(l => l.type === 'login').length;
+
+  const roleColor = {Admin:'#1D6F42',Manager:'#D68910',Member:'#1565C0',Viewer:'#757575'}[user.role]||'#555';
+
+  const right = document.getElementById('right');
+
+  // ── SUSPEND CARD ──
+  let susHTML = '';
+  if (sus && rem) {
+    susHTML = `<div class="sus-card">
+      <div class="sus-card-title">⊘ Account Currently Suspended</div>
+      <div class="active-sus-info">
+        ${user.suspendReason ? `<b>Reason:</b> ${user.suspendReason}<br>` : ''}
+        <b>Access blocked until:</b> ${S.fmt(user.suspendUntil)}
+      </div>
+      <div class="cd" id="det-cd">${rem.d}d ${String(rem.h).padStart(2,'0')}:${String(rem.m).padStart(2,'0')}:${String(rem.s).padStart(2,'0')}</div>
+      <div class="cd-label">Remaining suspension time</div>
+      ${(canSuspend||isMuli)&&!isMe ? `<div style="text-align:center;margin-top:12px"><button class="btn btn-p btn-sm" onclick="liftSuspension(${uid})">▶ Lift Suspension Now</button></div>` : ''}
+    </div>`;
+  }
+
+  // ── STOCK ALERTS for Muli ──
+  let stockHTML = '';
+  if (isMuli || session.permissions.includes('manage')) {
+    const low = items.filter(i => i.available === 0 || (i.qty > 0 && i.available/i.qty < 0.25));
+    if (low.length) {
+      stockHTML = `<div class="rst-banner">
+        <div class="rst-banner-icon">⚠</div>
+        <div><b>${low.length} item${low.length>1?'s':''} need restocking:</b> ${low.map(i=>`${i.name} (${i.available}/${i.qty})`).join(', ')}
+        ${isMuli||session.permissions.includes('restock') ? `<button class="btn btn-p btn-xs" style="margin-left:10px" onclick="openRestockModal()">⬆ Restock</button>` : ''}</div>
+      </div>`;
+    }
+  }
+
+  // ── PERMISSIONS GRID ──
+  const permsHTML = ALL_PERMS.map(p => {
+    const has = user.permissions.includes(p.key);
+    const canToggle = (canManage || isMuli) && !isMe;
+    return `<div class="perm-item ${has?'perm-on':'perm-off'}">
+      <span class="perm-icon">${p.icon}</span>
+      <div style="flex:1">
+        <span class="perm-lbl">${p.label}</span>
+        <span class="perm-sub">${p.sub}</span>
+      </div>
+      ${canToggle ? `<button class="tog ${has?'on':'off'}" onclick="togglePerm(${uid},'${p.key}')" title="${has?'Revoke':'Grant'}: ${p.label}"></button>` : ''}
+    </div>`;
+  }).join('');
+
+  // ── SECTIONS ──
+  const secHTML = sectionsDef.map(sec => {
+    const hasSection = (user.sections||[]).includes(sec.id);
+    const canToggleSec = (canManage || isMuli) && !isMe;
+    return `<div class="section-card">
+      <div class="section-head">
+        <div class="section-title">${sec.icon} ${sec.name}</div>
+        <div class="section-status">
+          <div class="section-tog">
+            ${hasSection?'<span style="color:var(--green);font-size:11px;font-weight:600">Enabled</span>':'<span style="color:var(--light);font-size:11px">Disabled</span>'}
+            ${canToggleSec ? `<button class="tog ${hasSection?'on':'off'}" onclick="toggleSection(${uid},'${sec.id}')" title="Toggle section access"></button>` : ''}
+          </div>
+          ${(canManage||isMuli) ? `<button class="btn btn-xs btn-g" onclick="removeSectionDef('${sec.id}')" title="Remove this section from all members" style="margin-left:8px">✕</button>` : ''}
+        </div>
+      </div>
+      ${hasSection ? `<div class="section-body" style="font-size:11px;color:var(--muted)">${sec.desc}</div>` : `<div class="section-locked-msg">🔒 ${user.name} does not have access to this section</div>`}
+    </div>`;
+  }).join('');
+
+  // ── INVENTORY TABLE ──
+  const cats = [...new Set(items.map(i=>i.cat))];
+  let invHTML = '';
+  if (user.sections?.includes('inv') && user.permissions.includes('view')) {
+    invHTML = cats.map(cat => {
+      const catItems = items.filter(i => i.cat === cat);
+      const rows = catItems.map(item => {
+        const pct = item.qty > 0 ? Math.round(item.available/item.qty*100) : 0;
+        const c = pct===0?'#C0392B':pct<35?'#D68910':'#1D6F42';
+        const bClass = item.available===0?'b-e':item.status==='Good'?'b-g':item.status==='Used'?'b-u':item.status==='Damaged'?'b-d':'b-x';
+        return `<tr>
+          <td style="color:var(--light)">${item.rowNum}</td>
+          <td style="font-weight:600;max-width:180px">${item.name}</td>
+          <td style="text-align:center">${item.qty} <span style="color:var(--light);font-size:10px">${item.unit}</span></td>
+          <td style="text-align:center"><div class="lvl" style="display:inline-block"><div class="lvl-f" style="width:${pct}%;background:${c}"></div></div><span style="color:${c};font-weight:700">${item.available}</span></td>
+          <td>${item.checkedOut||0}</td>
+          <td><span class="badge ${bClass}">${item.status}</span></td>
+        </tr>`;
+      }).join('');
+      return `<div style="margin-bottom:14px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--green-d);padding:5px 0;border-bottom:2px solid var(--border-d);margin-bottom:4px">◼ ${cat}</div>
+        <div class="inv-wrap"><table class="inv-tbl">
+          <thead><tr><th style="width:44px">#</th><th>Item</th><th style="width:90px">Total</th><th style="width:90px">Avail.</th><th style="width:55px">Out</th><th style="width:90px">Status</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table></div>
+      </div>`;
+    }).join('');
+  } else {
+    invHTML = `<div class="section-locked-msg">🔒 ${user.name} does not have permission to view inventory</div>`;
+  }
+
+  // ── ACTIVITY LOG ──
+  const logHTML = userLog.slice(0, 30).map(l => {
+    const ic = {login:'l-login',out:'l-out',return:'l-ret',restock:'l-rst',add:'l-add',edit:'l-edit',delete:'l-del',suspend:'l-sus',perm:'l-perm'};
+    const il = {login:'🔑',out:'↗',return:'↙',restock:'⬆',add:'＋',edit:'✏',delete:'✕',suspend:'⊘',perm:'🔧'};
+    return `<div class="log-e">
+      <div class="log-ic ${ic[l.type]||'l-login'}">${il[l.type]||'·'}</div>
+      <div class="log-body"><div class="lt">${l.title||l.type}</div><div class="lm">${l.detail||''}</div></div>
+      <div class="log-time">${S.fmt(l.ts)}</div>
+    </div>`;
+  }).join('') || '<div style="padding:16px;text-align:center;color:var(--light);font-size:12px">No activity recorded yet</div>';
+
+  right.innerHTML = `
+    ${susHTML}
+    ${stockHTML}
+
+    <div class="det-header">
+      <div class="det-av" style="background:${user.color}">${user.av}</div>
+      <div class="det-meta">
+        <div class="det-name">${user.name}</div>
+        <span class="det-role-b" style="background:${roleColor}1A;color:${roleColor};border:1px solid ${roleColor}33">${user.role}</span>
+        <div class="det-meta-row">
+          <div class="det-online-indicator" style="background:${online?'#4CAF50':'#ccc'}"></div>
+          <span>${online ? '● Online now' : 'Last active: ' + S.fmt(user.lastSeen)}</span>
+        </div>
+      </div>
+      ${!isMe && (canManage||isMuli||canSuspend) ? `<div class="det-actions">
+        ${(canManage||isMuli)?`<button class="btn btn-g btn-sm" onclick="openEditMember(${uid})">✏ Edit</button>`:''}
+        ${(canSuspend||isMuli)&&!sus?`<button class="btn btn-a btn-sm" onclick="openSuspendModal(${uid})">⊘ Suspend</button>`:''}
+        ${(canManage||isMuli)?`<button class="btn btn-r btn-sm" onclick="removeMember(${uid})">✕ Remove</button>`:''}
+      </div>` : ''}
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box"><div class="stat-val" style="color:var(--green)">${totalOut}</div><div class="stat-label">Checkouts</div></div>
+      <div class="stat-box"><div class="stat-val" style="color:${activeOut>0?'var(--red)':'var(--green)'}">${activeOut}</div><div class="stat-label">Items Out</div></div>
+      <div class="stat-box"><div class="stat-val" style="color:var(--blue)">${logins}</div><div class="stat-label">Logins</div></div>
+      <div class="stat-box"><div class="stat-val" style="color:var(--amber)">${user.permissions.length}</div><div class="stat-label">Permissions</div></div>
+    </div>
+
+    <div class="cards-grid">
+      <div class="card">
+        <div class="card-title"><span class="card-title-left">Permissions</span>
+          ${(canManage||isMuli)&&!isMe?`<span style="font-size:10px;color:var(--muted)">Toggle to grant/revoke</span>`:''}
+        </div>
+        <div class="perm-grid">${permsHTML}</div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="card-title-left">Activity Log</span><span style="font-size:10px;color:var(--muted)">Last 30 events</span></div>
+        <div class="log-list">${logHTML}</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)">Sections & Access</div>
+        ${(canManage||isMuli)?`<button class="btn btn-p btn-xs" onclick="openAddSection()">＋ Add Section</button>`:''}
+      </div>
+      ${secHTML}
+    </div>
+
+    <div class="card full">
+      <div class="card-title"><span class="card-title-left">Inventory View (${user.name}'s Perspective)</span></div>
+      ${invHTML}
+    </div>`;
+
+  // Live countdown for sus
+  if (sus && rem) {
+    if (susInt) clearInterval(susInt);
+    susInt = setInterval(() => {
+      const u2 = (S.get('users')||[]).find(u=>u.id===uid);
+      const el = document.getElementById('det-cd');
+      if (!el) { clearInterval(susInt); return; }
+      if (!u2 || !isSus(u2)) { renderDetail(uid); clearInterval(susInt); return; }
+      const r = susRem(u2);
+      if (!r) { el.textContent = '0d 00:00:00'; return; }
+      el.textContent = `${r.d}d ${String(r.h).padStart(2,'0')}:${String(r.m).padStart(2,'0')}:${String(r.s).padStart(2,'0')}`;
+    }, 1000);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// TOGGLE PERMISSION
+// ══════════════════════════════════════════════════════════════════
+function togglePerm(uid, perm) {
+  if (!session.permissions.includes('manage') && session.name !== 'Muli') { toast('No permission to manage members', true); return; }
+  if (uid === session.id) { toast('Cannot modify your own permissions', true); return; }
+  const users = S.get('users') || [];
+  const idx = users.findIndex(u => u.id === uid);
+  if (idx < 0) return;
+  const has = users[idx].permissions.includes(perm);
+  if (has) users[idx].permissions = users[idx].permissions.filter(p => p !== perm);
+  else users[idx].permissions.push(perm);
+  S.set('users', users);
+  addLog({ type:'perm', uid:session.id, user:session.name, title:`${has?'Revoked':'Granted'} "${perm}" for ${users[idx].name}`, detail:`By: ${session.name}` });
+  toast(`${has?'🔒 Revoked':'✓ Granted'} "${perm}" for ${users[idx].name}`);
+  renderDetail(uid); renderMemberList();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// TOGGLE SECTION
+// ══════════════════════════════════════════════════════════════════
+function toggleSection(uid, secId) {
+  const users = S.get('users') || [];
+  const idx = users.findIndex(u => u.id === uid);
+  if (idx < 0) return;
+  const secs = users[idx].sections || [];
+  const has = secs.includes(secId);
+  users[idx].sections = has ? secs.filter(s => s !== secId) : [...secs, secId];
+  S.set('users', users);
+  addLog({ type:'perm', uid:session.id, user:session.name, title:`${has?'Removed':'Added'} section "${secId}" for ${users[idx].name}`, detail:`By: ${session.name}` });
+  toast(`Section ${has?'removed from':'added for'} ${users[idx].name}`);
+  renderDetail(uid);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// SECTIONS DEF
+// ══════════════════════════════════════════════════════════════════
+function openAddSection() { openM('m-add-section'); }
+function saveAddSection() {
+  const name = document.getElementById('as-name').value.trim();
+  if (!name) { toast('Section name required', true); return; }
+  const icon = document.getElementById('as-icon').value.trim() || '📁';
+  const desc = document.getElementById('as-desc').value.trim();
+  const secs = S.get('sections_def') || DEFAULT_SECTIONS;
+  const newSec = { id: 'sec_' + Date.now(), name, icon, desc };
+  secs.push(newSec);
+  S.set('sections_def', secs);
+  addLog({ type:'add', uid:session.id, user:session.name, title:`Added section "${name}"`, detail:`By: ${session.name}` });
+  toast(`✓ Section "${name}" added`);
+  closeM('m-add-section');
+  if (selectedUid) renderDetail(selectedUid);
+}
+function removeSectionDef(secId) {
+  if (!confirm('Remove this section from all members?')) return;
+  const secs = (S.get('sections_def') || DEFAULT_SECTIONS).filter(s => s.id !== secId);
+  S.set('sections_def', secs);
+  // remove from all users
+  const users = S.get('users') || [];
+  users.forEach(u => { u.sections = (u.sections||[]).filter(s => s !== secId); });
+  S.set('users', users);
+  toast('Section removed');
+  if (selectedUid) renderDetail(selectedUid);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// SUSPEND
+// ══════════════════════════════════════════════════════════════════
+const DURATIONS = [{l:'1 Day',v:1},{l:'3 Days',v:3},{l:'1 Week',v:7},{l:'2 Weeks',v:14},{l:'1 Month',v:30},{l:'Indefinite',v:0}];
+function setSusDays(v) { if(v) document.getElementById('sus-days').value = v; }
+
+function openSuspendModal(uid) {
+  suspendTargetId = uid;
+  document.getElementById('dur-row').innerHTML = DURATIONS.map((d,i) =>
+    `<button class="dur-btn${i===2?' sel':''}" onclick="document.querySelectorAll('.dur-btn').forEach(b=>b.classList.remove('sel'));this.classList.add('sel');document.getElementById('sus-days').value='${d.v}';document.getElementById('sus-custom').value=''">${d.l}</button>`
+  ).join('');
+  document.getElementById('sus-days').value = '7';
+  document.getElementById('sus-custom').value = '';
+  document.getElementById('sus-reason-input').value = '';
+  openM('m-suspend');
+}
+
+function doSuspend() {
+  if (!session.permissions.includes('suspend') && session.name !== 'Muli') { toast('No permission to suspend', true); return; }
+  const uid = suspendTargetId;
+  const users = S.get('users') || [];
+  const idx = users.findIndex(u => u.id === uid);
+  if (idx < 0) return;
+  const days = parseInt(document.getElementById('sus-days').value);
+  const reason = document.getElementById('sus-reason-input').value.trim();
+  users[idx].suspended = true;
+  users[idx].suspendReason = reason;
+  if (days === 0) { users[idx].suspendUntil = null; }
+  else { const until = new Date(); until.setDate(until.getDate() + days); users[idx].suspendUntil = until.toISOString(); }
+  S.set('users', users);
+  addLog({ type:'suspend', uid:session.id, user:session.name, title:`${users[idx].name} suspended`, detail:`${days===0?'Indefinite':days+' days'}${reason?' · '+reason:''}` });
+  toast(`${users[idx].name} suspended`);
+  closeM('m-suspend');
+  renderMemberList(); renderDetail(uid);
+}
+
+function liftSuspension(uid) {
+  const users = S.get('users') || [];
+  const idx = users.findIndex(u => u.id === uid);
+  if (idx < 0) return;
+  users[idx].suspended = false; users[idx].suspendUntil = null; users[idx].suspendReason = '';
+  S.set('users', users);
+  addLog({ type:'perm', uid:session.id, user:session.name, title:`${users[idx].name} suspension lifted`, detail:`By: ${session.name}` });
+  toast(`✓ ${users[idx].name}'s access restored`);
+  renderMemberList(); renderDetail(uid);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ADD / EDIT / REMOVE MEMBER
+// ══════════════════════════════════════════════════════════════════
+function buildMemberForm(editUser=null) {
+  const secs = S.get('sections_def') || DEFAULT_SECTIONS;
+  const permsHTML = ALL_PERMS.map(p => {
+    const has = editUser ? editUser.permissions.includes(p.key) : ['view','checkout','return'].includes(p.key);
+    return `<label class="perm-check">
+      <input type="checkbox" name="perm" value="${p.key}" ${has?'checked':''}>
+      <span><span class="perm-check-lbl">${p.icon} ${p.label}</span><span class="perm-check-sub">${p.sub}</span></span>
+    </label>`;
+  }).join('');
+  const secsHTML = secs.map(s => {
+    const has = editUser ? (editUser.sections||[]).includes(s.id) : ['inv','checkout'].includes(s.id);
+    return `<div class="sec-item">
+      <span class="sec-item-icon">${s.icon}</span>
+      <div class="sec-item-info"><div class="sec-item-name">${s.name}</div><div class="sec-item-sub">${s.desc}</div></div>
+      <input type="checkbox" name="sec" value="${s.id}" ${has?'checked':''} style="accent-color:var(--green)">
+    </div>`;
+  }).join('');
+  document.getElementById('mm-perms').innerHTML = permsHTML;
+  document.getElementById('mm-secs').innerHTML = secsHTML;
+  if (editUser) {
+    document.getElementById('mm-name').value = editUser.name;
+    document.getElementById('mm-role').value = editUser.role;
+    document.getElementById('mm-av').value = editUser.av;
+    document.getElementById('mm-color').value = editUser.color;
+  } else {
+    document.getElementById('mm-name').value = '';
+    document.getElementById('mm-role').value = 'Member';
+    document.getElementById('mm-av').value = '';
+    document.getElementById('mm-color').value = '#1D6F42';
+  }
+}
+
+function openAddMember() {
+  document.getElementById('m-member-title').textContent = '＋ Add New Member';
+  document.getElementById('mm-save-btn').textContent = '＋ Add Member';
+  delete document.getElementById('m-member').dataset.editId;
+  buildMemberForm(null);
+  openM('m-member');
+}
+
+function openEditMember(uid) {
+  const user = (S.get('users')||[]).find(u => u.id === uid);
+  if (!user) return;
+  document.getElementById('m-member-title').textContent = `✏ Edit ${user.name}`;
+  document.getElementById('mm-save-btn').textContent = 'Save Changes';
+  document.getElementById('m-member').dataset.editId = uid;
+  buildMemberForm(user);
+  openM('m-member');
+}
+
+function saveMember() {
+  const name = document.getElementById('mm-name').value.trim();
+  if (!name) { toast('Name required', true); return; }
+  const role = document.getElementById('mm-role').value;
+  const av = document.getElementById('mm-av').value.trim() || name.slice(0,2).toUpperCase();
+  const color = document.getElementById('mm-color').value;
+  const perms = [...document.querySelectorAll('input[name="perm"]:checked')].map(i=>i.value);
+  const secs = [...document.querySelectorAll('input[name="sec"]:checked')].map(i=>i.value);
+  const users = S.get('users') || [];
+  const editId = document.getElementById('m-member').dataset.editId;
+
+  if (editId) {
+    const idx = users.findIndex(u => u.id === parseInt(editId));
+    if (idx < 0) return;
+    const prev = users[idx].name;
+    users[idx] = { ...users[idx], name, role, av, color, permissions:perms, sections:secs };
+    S.set('users', users);
+    addLog({ type:'edit', uid:session.id, user:session.name, title:`Edited member "${prev}"`, detail:`Role: ${role} · Perms: ${perms.length}` });
+    toast(`✓ ${name} updated`);
+    closeM('m-member');
+    renderAll(); renderDetail(parseInt(editId));
+  } else {
+    if (users.find(u=>u.name.toLowerCase()===name.toLowerCase())) { toast('A member with that name already exists', true); return; }
+    const newUser = { id: Date.now(), name, role, av, color, permissions:perms, sections:secs, suspended:false, suspendUntil:null, suspendReason:'', lastSeen:null };
+    users.push(newUser);
+    S.set('users', users);
+    addLog({ type:'add', uid:session.id, user:session.name, title:`Added member "${name}"`, detail:`Role: ${role} · Perms: ${perms.length}` });
+    toast(`✓ ${name} added`);
+    closeM('m-member');
+    renderAll();
+  }
+}
+
+function removeMember(uid) {
+  const user = (S.get('users')||[]).find(u=>u.id===uid);
+  if (!confirm(`Remove ${user?.name}? This cannot be undone.`)) return;
+  S.set('users', (S.get('users')||[]).filter(u=>u.id!==uid));
+  addLog({ type:'delete', uid:session.id, user:session.name, title:`Removed member "${user?.name}"`, detail:`By: ${session.name}` });
+  toast(`${user?.name} removed`);
+  selectedUid = null;
+  document.getElementById('right').innerHTML = '<div class="no-sel"><div class="no-sel-icon">👤</div><div>Select a member from the list</div></div>';
+  renderMemberList();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// STOCK ALERTS
+// ══════════════════════════════════════════════════════════════════
+function checkStockAlerts() {
+  const items = S.get('items') || [];
+  const low = items.filter(i => i.available === 0 || (i.qty > 0 && i.available/i.qty < 0.25));
+  const box = document.getElementById('stock-alert-box');
+  if (low.length && (session.name==='Muli'||session.permissions.includes('manage'))) {
+    box.classList.add('show');
+    document.getElementById('stock-alert-list').innerHTML = low.map(i =>
+      `<div class="alert-item">⚠ ${i.name} — <b>${i.available}/${i.qty}</b></div>`
+    ).join('');
+  } else {
+    box.classList.remove('show');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// RESTOCK (Muli only from DB side)
+// ══════════════════════════════════════════════════════════════════
+function openRestockModal() {
+  if (session.name !== 'Muli' && !session.permissions.includes('restock')) { toast('Only Muli can restock from here', true); return; }
+  const items = S.get('items') || [];
+  document.getElementById('rst-item').innerHTML = items.map(i=>`<option value="${i.id}">${i.name} (${i.available} avail.)</option>`).join('');
+  openM('m-restock');
+}
+function doRestock() {
+  const itemId = parseInt(document.getElementById('rst-item').value);
+  const qty = parseInt(document.getElementById('rst-qty').value) || 1;
+  const cond = document.getElementById('rst-cond').value;
+  const src = document.getElementById('rst-src').value.trim();
+  const notes = document.getElementById('rst-notes').value.trim();
+  const items = S.get('items') || [];
+  const idx = items.findIndex(i => i.id === itemId);
+  if (idx < 0) return;
+  items[idx].qty += qty;
+  items[idx].available += qty;
+  if (cond==='Good'||cond==='New') items[idx].status = 'Good';
+  items[idx].condition = cond;
+  S.set('items', items);
+  addLog({ type:'restock', uid:session.id, user:session.name, title:`"${items[idx].name}" restocked`, detail:`+${qty} · ${cond}${src?' · From: '+src:''}${notes?' · '+notes:''}` });
+  toast(`✓ ×${qty} "${items[idx].name}" restocked`);
+  closeM('m-restock');
+  checkStockAlerts();
+  if (selectedUid) renderDetail(selectedUid);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// LIVE FEED
+// ══════════════════════════════════════════════════════════════════
+let feedOpen = false;
+function toggleFeed() {
+  feedOpen = !feedOpen;
+  document.getElementById('feed').classList.toggle('open', feedOpen);
+  if (feedOpen) renderFeed();
+}
+function renderFeed() {
+  if (!session) return;
+  const log = S.get('log') || [];
+  const ic = {login:'l-login',out:'l-out',return:'l-ret',restock:'l-rst',add:'l-add',edit:'l-edit',delete:'l-del',suspend:'l-sus',perm:'l-perm'};
+  const il = {login:'🔑',out:'↗',return:'↙',restock:'⬆',add:'＋',edit:'✏',delete:'✕',suspend:'⊘',perm:'🔧'};
+  const fb = document.getElementById('feed-body');
+  fb.innerHTML = log.slice(0, 40).map(l => `
+    <div class="feed-e">
+      <div class="feed-ic ${ic[l.type]||'l-login'}">${il[l.type]||'·'}</div>
+      <div>
+        <div class="feed-body-t">${l.title||l.type}</div>
+        <div class="feed-body-m">${l.detail||''}</div>
+        <div class="feed-body-time">${S.fmt(l.ts)}</div>
+      </div>
+    </div>`).join('') || '<div class="feed-empty">No activity yet</div>';
+}
+
+// ══════════════════════════════════════════════════════════════════
+// MODAL HELPERS
+// ══════════════════════════════════════════════════════════════════
+function openM(id) { document.getElementById(id).classList.add('open'); }
+function closeM(id) { document.getElementById(id).classList.remove('open'); }
+function toast(msg, err=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast' + (err?' err':'');
+  t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// KEYBOARD
+// ══════════════════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { ['m-member','m-add-section','m-suspend','m-restock'].forEach(closeM); feedOpen=false; document.getElementById('feed').classList.remove('open'); }
+});
+
+// ══════════════════════════════════════════════════════════════════
+// BOOT
+// ══════════════════════════════════════════════════════════════════
+initDefaults();
+buildLock();
+const saved = sessionStorage.getItem('db_session');
+if (saved) {
+  const u = JSON.parse(saved);
+  const users = S.get('users') || [];
+  const fresh = users.find(x => x.id === u.id);
+  if (fresh && isSus(fresh)) { showSusWall(fresh); }
+  else if (fresh) { session = { ...fresh }; document.getElementById('lock').style.display='none'; initApp(); }
+  else { sessionStorage.removeItem('db_session'); buildLock(); }
+}
+</script>
+</body>
+</html>
